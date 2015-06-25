@@ -16,6 +16,14 @@ class MumbleClient(object):
         if "password" in kwargs:
             self.password = kwargs["password"]
 
+        self.celt_versions = []
+        if "celt_versions" in kwargs:
+            self.celt_versions = kwargs["celt_versions"]
+
+        self.opus_support = False
+        if "opus" in kwargs:
+            self.opus_support = kwargs["opus"]
+
         self.sock = None
         self.inbuf = ''
 
@@ -71,6 +79,9 @@ class MumbleClient(object):
         auth.username = self.username
         if self.password:
             auth.password = self.password
+        if self.celt_versions:
+            auth.celt_versions.extend(self.celt_versions)
+        auth.opus = self.opus_support
 
         self.send_packet(auth, 2)
 
@@ -97,6 +108,7 @@ class MumbleClient(object):
             elif code == 1:
                 # UDPTunnel
                 self.on_UDPTunnel(data)
+                print repr(data)
 
             elif code == 2:
                 # Authenticate
@@ -354,5 +366,5 @@ class MumbleClient(object):
         pass
 
 if __name__ == "__main__":
-    cli = MumbleClient("localhost", 64738, "VarBot")
+    cli = MumbleClient("localhost", 64738, "VarBot", opus=True)
     cli.connect()
