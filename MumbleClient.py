@@ -4,6 +4,8 @@ import socket
 import ssl
 import threading
 import time
+from MumbleChannel import MumbleChannel
+from MumbleUser import MumbleUser
 import Mumble_pb2
 
 class MumbleClient(object):
@@ -29,6 +31,9 @@ class MumbleClient(object):
 
         self.ping_thread = threading.Thread(target=self.ping)
         self.ping_thread.setDaemon(True)
+
+        self.channels = {}
+        self.users = {}
 
     def get_bytes(self, num):
         while len(self.inbuf) < num:
@@ -108,7 +113,6 @@ class MumbleClient(object):
             elif code == 1:
                 # UDPTunnel
                 self.on_UDPTunnel(data)
-                print repr(data)
 
             elif code == 2:
                 # Authenticate
@@ -149,12 +153,20 @@ class MumbleClient(object):
                 chan = Mumble_pb2.ChannelRemove()
                 chan.ParseFromString(data)
 
+                if chan.channel_id in self.channels:
+                    self.channels.pop(chan.channel_id)
+
                 self.on_ChannelRemove(chan)
 
             elif code == 7:
                 # ChannelState
                 chan = Mumble_pb2.ChannelState()
                 chan.ParseFromString(data)
+
+                if chan.channel_id in self.channels:
+                    self.channels[chan.channel_id].update(chan)
+                else:
+                    self.channels[chan.channel_id] = MumbleChannel(chan)
 
                 self.on_ChannelState(chan)
 
@@ -163,12 +175,20 @@ class MumbleClient(object):
                 user = Mumble_pb2.UserRemove()
                 user.ParseFromString(data)
 
+                if user.session in self.users:
+                    self.users.pop(user.session)
+
                 self.on_UserRemove(user)
 
             elif code == 9:
                 # UserState
                 user = Mumble_pb2.UserState()
                 user.ParseFromString(data)
+
+                if user.session in self.users:
+                    self.users[user.session].update(user)
+                else:
+                    self.users[user.session] = MumbleUser(user)
 
                 self.on_UserState(user)
 
